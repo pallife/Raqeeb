@@ -1,0 +1,10 @@
+# الخادم الوسيط + واجهة الجوال. ضعه خلف HTTPS (Caddy/nginx/Cloudflare Tunnel).
+services:
+  relay:
+    build: { context: ., dockerfile: relay/Dockerfile }
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    environment:
+      RAQEEB_RELAY_AUTH_SHA256: ${RAQEEB_RELAY_AUTH_SHA256:?شغّل Raqeeb.exe --pair وانسخ القيمة}
+      RAQEEB_TG_BOT_TOKEN: ${RAQEEB_TG_BOT_TOKEN:-}
+      RAQEEB_TG_CHAT_ID: ${RAQEEB_TG_CHAT_ID:-}

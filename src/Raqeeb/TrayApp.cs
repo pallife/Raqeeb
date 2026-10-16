@@ -24,6 +24,7 @@ internal sealed class TrayApp : ApplicationContext
         menu.Items.Add(_statusItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("عرض الحالة والسجل", null, (_, _) => ShowForm());
+        menu.Items.Add("اقتران الجوال (رمز QR)…", null, (_, _) => new PairForm(_ctl.Config).ShowDialog());
         menu.Items.Add("فتح ملف الإعدادات (.env)", null, (_, _) => OpenEnv());
         menu.Items.Add("إعادة تحميل الإعدادات", null, async (_, _) => await _ctl.ReloadAsync());
         menu.Items.Add(new ToolStripSeparator());
@@ -115,5 +116,36 @@ internal sealed class StatusForm : Form
         List<string> copy; lock (c.Log) copy = c.Log.Take(200).ToList();
         foreach (var l in copy) _log.Items.Add(l);
         _log.EndUpdate();
+    }
+}
+
+/// <summary>اقتران الجوال: رمز QR لرابط فيه السرّ الرئيسي في الجزء بعد # (لا يصل إلى أي خادم) + قيمة تُوضع على الخادم الوسيط.</summary>
+internal sealed class PairForm : Form
+{
+    public PairForm(Config cfg)
+    {
+        Text = "اقتران الجوال"; Width = 460; Height = 640; StartPosition = FormStartPosition.CenterScreen;
+        RightToLeft = RightToLeft.Yes; RightToLeftLayout = true; FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false;
+        var link = cfg.PairLink();
+        var pb = new PictureBox { Dock = DockStyle.Top, Height = 330, SizeMode = PictureBoxSizeMode.Zoom };
+        if (link.Length > 0)
+        {
+            using var gen = new QRCoder.QRCodeGenerator();
+            using var data = gen.CreateQrCode(link, QRCoder.QRCodeGenerator.ECCLevel.M);
+            var png = new QRCoder.PngByteQRCode(data).GetGraphic(8);
+            pb.Image = Image.FromStream(new MemoryStream(png));
+        }
+        var note = new Label
+        {
+            Dock = DockStyle.Top, Height = 120, Padding = new Padding(12),
+            Text = link.Length == 0
+                ? "لا يوجد RAQEEB_SECRET في .env (أو عنوان الخادم فارغ)."
+                : "امسح الرمز بكاميرا الجوال لفتح رقيب مقترناً بهذا الجهاز. الرابط سرّي — مسحه يعطي تحكماً كاملاً (يبقى PIN مطلوباً للإجراءات). لا تشاركه.\r\nعلى الخادم الوسيط ضع RAQEEB_RELAY_AUTH_SHA256 (الزر أدناه).",
+        };
+        var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(8) };
+        Button B(string t, Action a) { var b = new Button { Text = t, AutoSize = true, Margin = new Padding(4) }; b.Click += (_, _) => a(); return b; }
+        bar.Controls.Add(B("نسخ الرابط", () => { if (link.Length > 0) Clipboard.SetText(link); }));
+        bar.Controls.Add(B("نسخ RAQEEB_RELAY_AUTH_SHA256", () => Clipboard.SetText("RAQEEB_RELAY_AUTH_SHA256=" + cfg.WebTokenHash())));
+        Controls.Add(bar); Controls.Add(note); Controls.Add(pb);
     }
 }

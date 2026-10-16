@@ -1,6 +1,6 @@
 """اختبار طرف-لطرف: مرحّل cpweb حقيقي محلي + Raqeeb.exe + «جوال» وهمي يرسل أوامر مشفّرة بنفس بروتوكول PWA.
 
-الاستعمال:  python tests/e2e_relay.py <مسار Raqeeb.exe> <مجلد مصدر المرحّل (web/server)>
+الاستعمال:  python tests/e2e_relay.py <مسار Raqeeb.exe> [مجلد relay]   (الافتراضي: relay/ في هذا المستودع)
 يحتاج: fastapi uvicorn websockets cryptography. لا يحرّك الفأرة ولا يطفئ شيئاً (كل الاختبارات آمنة).
 """
 import base64
@@ -19,9 +19,20 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-EXE, SERVER = sys.argv[1], sys.argv[2]
-TOKEN = os.urandom(32).hex()
-KEY = os.urandom(32)
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+
+EXE = sys.argv[1]
+SERVER = sys.argv[2] if len(sys.argv) > 2 else str(Path(__file__).resolve().parent.parent / "relay")
+SECRET = os.urandom(32)
+
+
+def derive(info: bytes) -> bytes:
+    return HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=info).derive(SECRET)
+
+
+KEY = derive(b"control-panel/agent/v1")
+TOKEN = derive(b"control-panel/web-auth/v1").hex()
 PIN = "246810"
 DEV = "e2etest" + uuid.uuid4().hex[:6]
 tmp = Path(tempfile.mkdtemp(prefix="raqeeb-e2e-"))
@@ -34,13 +45,12 @@ def free_port():
 port = free_port()
 base = f"http://127.0.0.1:{port}/cp"
 relay = subprocess.Popen(
-    [sys.executable, "-m", "uvicorn", "cpweb:app", "--app-dir", SERVER, "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
-    env={**os.environ, "CPWEB_DATA": str(tmp / "d"), "CPWEB_AUTH_SHA256": hashlib.sha256(TOKEN.encode()).hexdigest(), "CPWEB_BASE_PATH": "/cp", "CPWEB_AGENT_TIMEOUT": "5"})
+    [sys.executable, "-m", "uvicorn", "raqeeb_relay:app", "--app-dir", SERVER, "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
+    env={**os.environ, "RAQEEB_RELAY_AUTH_SHA256": hashlib.sha256(TOKEN.encode()).hexdigest(), "RAQEEB_RELAY_BASE_PATH": "/cp", "RAQEEB_RELAY_TIMEOUT": "5"})
 (tmp / "root").mkdir(); (tmp / "root" / "hello.txt").write_text("مرحبا", encoding="utf-8")
 env_file = tmp / ".env"
 env_file.write_text(f"""RAQEEB_RELAY_URL={base}
-RAQEEB_WEB_TOKEN={TOKEN}
-RAQEEB_AGENT_KEY={KEY.hex()}
+RAQEEB_SECRET={SECRET.hex()}
 RAQEEB_PIN={PIN}
 RAQEEB_DEVICE_ID={DEV}
 RAQEEB_DEVICE_NAME=اختبار
@@ -86,8 +96,7 @@ def cmd(op, args=None, pin=PIN):
 try:
     for _ in range(80):
         try:
-            urllib.request.urlopen(base + "/api/salt", timeout=1)
-        except urllib.error.HTTPError:
+            urllib.request.urlopen(base + "/healthz", timeout=1)
             break
         except Exception:
             time.sleep(0.25)

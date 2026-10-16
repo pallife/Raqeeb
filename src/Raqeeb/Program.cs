@@ -9,6 +9,8 @@ internal static class Program
     private const string Mutex = "Global\\Raqeeb.SingleInstance";
     private const string RunKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")] private static extern bool AttachConsole(int pid);
+
     [STAThread]
     private static int Main(string[] args)
     {
@@ -20,6 +22,19 @@ internal static class Program
             var p = cfg.Problems();
             File.WriteAllText(Path.Combine(Path.GetTempPath(), "raqeeb-check.txt"), $"env: {cfg.Path}\n" + (p.Count == 0 ? "OK" : string.Join("\n", p)));
             return p.Count == 0 ? 0 : 2;
+        }
+
+        if (args.Contains("--pair"))
+        {
+            AttachConsole(-1);
+            var cfg = Config.Load(ArgValue(args, "--env"));
+            Console.WriteLine();
+            Console.WriteLine("رابط الاقتران (افتحه على الجوال — سرّي):");
+            Console.WriteLine(cfg.PairLink());
+            Console.WriteLine();
+            Console.WriteLine("على الخادم الوسيط ضع:");
+            Console.WriteLine("RAQEEB_RELAY_AUTH_SHA256=" + cfg.WebTokenHash());
+            return 0;
         }
 
         using var mtx = new System.Threading.Mutex(true, Mutex, out var first);

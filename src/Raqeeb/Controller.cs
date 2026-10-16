@@ -56,7 +56,7 @@ internal sealed class Controller
     private void Start()
     {
         var relay = Config.Str("RAQEEB_RELAY_URL").TrimEnd('/');
-        var token = Config.Str("RAQEEB_WEB_TOKEN");
+        var token = Config.WebToken();
         var key = Config.AgentKey()!;
         var o = Options;
         _svc = new AgentService(key, o, new AppHost(_balloon), new WindowsAgentSystem(), null, Helper)

@@ -71,9 +71,17 @@ public sealed class Config
         catch { }
     }
 
-    /// <summary>مفتاح الوكيل: 32 بايت بصيغة hex (64 حرفاً) أو base64.</summary>
+    /// <summary>السرّ الرئيسي (32 بايت hex) إن وُجد؛ منه يُشتق مفتاح التشفير ورمز الدخول بنفس مخطط خزنة لوحة التحكم.</summary>
+    public byte[]? Secret()
+    {
+        var s = Str("RAQEEB_SECRET").Trim();
+        return s.Length == 64 && s.All(Uri.IsHexDigit) ? Convert.FromHexString(s) : null;
+    }
+
+    /// <summary>مفتاح الوكيل: مشتق من السرّ الرئيسي، أو RAQEEB_AGENT_KEY (32 بايت hex/base64).</summary>
     public byte[]? AgentKey()
     {
+        if (Secret() is { } m) return AgentCrypto.DeriveKey(m);
         var s = Str("RAQEEB_AGENT_KEY").Trim();
         if (s.Length == 0) return null;
         try
@@ -85,6 +93,17 @@ public sealed class Config
         catch { return null; }
     }
 
+    /// <summary>رمز دخول الخادم: hex مشتق من السرّ الرئيسي، أو RAQEEB_WEB_TOKEN.</summary>
+    public string WebToken() => Secret() is { } m
+        ? Convert.ToHexString(HKDF.DeriveKey(HashAlgorithmName.SHA256, m, 32, info: Encoding.ASCII.GetBytes("control-panel/web-auth/v1"))).ToLowerInvariant()
+        : Str("RAQEEB_WEB_TOKEN");
+
+    /// <summary>sha256 لرمز الدخول — هذا ما يوضع في RAQEEB_RELAY_AUTH_SHA256 على الخادم الوسيط.</summary>
+    public string WebTokenHash() => Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(WebToken()))).ToLowerInvariant();
+
+    /// <summary>رابط الاقتران للجوال: السرّ في الجزء بعد # فلا يصل إلى أي خادم.</summary>
+    public string PairLink() => Secret() is { } m ? Str("RAQEEB_RELAY_URL").TrimEnd('/') + "/#k=" + Convert.ToHexString(m).ToLowerInvariant() : "";
+
     /// <summary>أخطاء الإعداد التي تمنع التشغيل (فارغة = سليم).</summary>
     public List<string> Problems()
     {
@@ -92,8 +111,12 @@ public sealed class Config
         var url = Str("RAQEEB_RELAY_URL");
         if (url.Length == 0 || url.Contains("your-relay.example.com")) p.Add("RAQEEB_RELAY_URL: اكتب عنوان خادم الويب.");
         else if (!Uri.TryCreate(url, UriKind.Absolute, out var u) || u.Scheme is not ("http" or "https")) p.Add("RAQEEB_RELAY_URL ليس رابط http(s) صالحاً.");
-        if (Str("RAQEEB_WEB_TOKEN").Length < 16) p.Add("RAQEEB_WEB_TOKEN فارغ أو قصير.");
-        if (AgentKey() is null) p.Add("RAQEEB_AGENT_KEY يجب أن يكون 32 بايت (64 حرف hex أو base64).");
+        if (Str("RAQEEB_SECRET").Length > 0 && Secret() is null) p.Add("RAQEEB_SECRET يجب أن يكون 64 حرف hex.");
+        else if (Secret() is null)
+        {
+            if (WebToken().Length < 16) p.Add("اضبط RAQEEB_SECRET (أو RAQEEB_WEB_TOKEN).");
+            if (AgentKey() is null) p.Add("RAQEEB_AGENT_KEY يجب أن يكون 32 بايت (64 حرف hex أو base64).");
+        }
         var pin = Str("RAQEEB_PIN");
         if (pin.Length is > 0 and < 4) p.Add("RAQEEB_PIN أقل من 4 خانات.");
         return p;
@@ -130,8 +153,7 @@ public sealed class Config
         using var r = new StreamReader(s, Encoding.UTF8);
         var text = r.ReadToEnd();
         string Hex() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-        text = text.Replace("RAQEEB_WEB_TOKEN=\n", "RAQEEB_WEB_TOKEN=" + Hex() + "\n").Replace("RAQEEB_WEB_TOKEN=\r\n", "RAQEEB_WEB_TOKEN=" + Hex() + "\r\n")
-                   .Replace("RAQEEB_AGENT_KEY=\n", "RAQEEB_AGENT_KEY=" + Hex() + "\n").Replace("RAQEEB_AGENT_KEY=\r\n", "RAQEEB_AGENT_KEY=" + Hex() + "\r\n");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^RAQEEB_SECRET=[ \t]*\r?$", "RAQEEB_SECRET=" + Hex(), System.Text.RegularExpressions.RegexOptions.Multiline);
         File.WriteAllText(path, text, new UTF8Encoding(false));
     }
 }
