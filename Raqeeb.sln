@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{88E9F1AC-F3BA-4AC9-8A64-29B2F5F999B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Raqeeb", "src\Raqeeb\Raqeeb.csproj", "{CC80AA98-0AC4-412F-9541-5E70D971CC77}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Raqeeb.Helper", "src\Raqeeb.Helper\Raqeeb.Helper.csproj", "{47083F83-D2FC-4888-9353-FF98416BCC43}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CC80AA98-0AC4-412F-9541-5E70D971CC77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC80AA98-0AC4-412F-9541-5E70D971CC77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC80AA98-0AC4-412F-9541-5E70D971CC77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC80AA98-0AC4-412F-9541-5E70D971CC77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47083F83-D2FC-4888-9353-FF98416BCC43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47083F83-D2FC-4888-9353-FF98416BCC43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47083F83-D2FC-4888-9353-FF98416BCC43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47083F83-D2FC-4888-9353-FF98416BCC43}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CC80AA98-0AC4-412F-9541-5E70D971CC77} = {88E9F1AC-F3BA-4AC9-8A64-29B2F5F999B9}
+		{47083F83-D2FC-4888-9353-FF98416BCC43} = {88E9F1AC-F3BA-4AC9-8A64-29B2F5F999B9}
+	EndGlobalSection
+EndGlobal
