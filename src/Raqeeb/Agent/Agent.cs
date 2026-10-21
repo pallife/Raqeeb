@@ -404,6 +404,14 @@ public sealed class AgentClient : IDisposable
 {
     private readonly Uri _wsBase; private readonly Func<string> _token; private readonly AgentOptions _opt; private readonly AgentService _svc;
     private CancellationTokenSource? _cts; private Task? _loop;
+    // ClientWebSocket لا يقبل إرسالين متزامنين: ردّ لقطة كبير + ردّ ضغطة مفتاح + نبض كانت تتصادم فيضيع الردّ (والجوال ينتظر 40ث)
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private async Task SendLockedAsync(ClientWebSocket ws, byte[] data, CancellationToken ct)
+    {
+        await _sendLock.WaitAsync(ct);
+        try { await ws.SendAsync(data, WebSocketMessageType.Text, true, ct); }
+        finally { _sendLock.Release(); }
+    }
     public bool Connected { get; private set; }
     public string Status { get; private set; } = "متوقف";
     public event Action? Changed;
@@ -436,7 +444,7 @@ public sealed class AgentClient : IDisposable
                 {
                     while (!ct.IsCancellationRequested && ws.State == WebSocketState.Open)
                     {
-                        try { await ws.SendAsync(Encoding.UTF8.GetBytes("{\"hb\":1}"), WebSocketMessageType.Text, true, ct); } catch { return; }
+                        try { await SendLockedAsync(ws, Encoding.UTF8.GetBytes("{\"hb\":1}"), ct); } catch { return; }
                         try { await Task.Delay(20000, ct); } catch { return; }
                     }
                 }, ct);
@@ -455,7 +463,7 @@ public sealed class AgentClient : IDisposable
                             var reply = await _svc.HandleAsync(id, sealedCmd);
                             if (reply is null || ws.State != WebSocketState.Open) return;
                             var json = JsonSerializer.SerializeToUtf8Bytes(new { id, ct = Convert.ToBase64String(reply) });
-                            try { await ws.SendAsync(json, WebSocketMessageType.Text, true, ct); } catch { }
+                            try { await SendLockedAsync(ws, json, ct); } catch (Exception ex) { Set($"تعذّر إرسال ردّ: {ex.Message}"); try { ws.Abort(); } catch { } }
                         }, ct);
                     }
                     catch (JsonException) { }
