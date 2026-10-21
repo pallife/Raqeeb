@@ -1,7 +1,7 @@
 'use strict';
 /* عامل خدمة بسيط: يجعل الصفحة قابلة للتثبيت ويحتفظ بقشرة الواجهة للفتح السريع حتى مع شبكة بطيئة.
    لا يخزّن أي استدعاء API أبداً — الشبكة أولاً دائماً. */
-const CACHE = 'raqeeb-shell-v1';
+const CACHE = 'raqeeb-shell-v2';
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
