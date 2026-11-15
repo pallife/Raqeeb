@@ -60,6 +60,8 @@ public sealed class TerminalManager : IDisposable
         private readonly byte[] _ring = new byte[RingBytes];
         private long _total; // إجمالي البايتات المكتوبة منذ البداية
         private readonly object _rl = new();
+        private readonly object _wl = new();
+        private FileStream _in = null!;
 
         public PtySession(string cmd, short cols, short rows, string? cwd)
         {
@@ -80,6 +82,7 @@ public sealed class TerminalManager : IDisposable
             if (!NativeMethods.CreateProcess(null, cmd, IntPtr.Zero, IntPtr.Zero, false, 0x00080000, IntPtr.Zero, dir, ref si, out var pi))
                 throw new Win32Exception();
             _proc = pi.hProcess; _thread = pi.hThread;
+            _in = new FileStream(_inWrite, FileAccess.Write, 1, false);
             new Thread(ReadLoop) { IsBackground = true, Name = "pty-read" }.Start();
         }
 
@@ -123,9 +126,7 @@ public sealed class TerminalManager : IDisposable
             LastUse = DateTime.UtcNow;
             if (Exited) throw new InvalidOperationException("انتهت الجلسة");
             var b = Encoding.UTF8.GetBytes(text);
-            using var fs = new FileStream(_inWrite, FileAccess.Write, 1, false);
-            fs.Write(b, 0, b.Length); fs.Flush();
-            GC.SuppressFinalize(fs);
+            lock (_wl) { _in.Write(b, 0, b.Length); _in.Flush(); }
         }
 
         public void Resize(short cols, short rows) => NativeMethods.ResizePseudoConsole(_hpc, new COORD { X = Math.Clamp(cols, (short)20, (short)300), Y = Math.Clamp(rows, (short)5, (short)100) });

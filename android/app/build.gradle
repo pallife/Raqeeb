@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+def sign = new Properties()
+def signFile = file('../signing.properties')
+if (signFile.exists()) signFile.withInputStream { sign.load(it) }
+android {
+    namespace 'com.raqeeb.app'
+    compileSdk 34
+    defaultConfig { applicationId 'com.raqeeb.app'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0.0' }
+    signingConfigs { release { if (signFile.exists()) { storeFile file(sign['storeFile']); storePassword sign['storePassword']; keyAlias sign['keyAlias']; keyPassword sign['keyPassword'] } } }
+    buildTypes { release { minifyEnabled false; signingConfig signingConfigs.release } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError false; checkReleaseBuilds false }
+}

@@ -7,3 +7,10 @@ dist/
 _build*/
 *.user
 .vs/
+
+android/signing.properties
+android/*.jks
+android/.gradle/
+android/app/build/
+compose.contabo1.yaml
+_build_helper/
