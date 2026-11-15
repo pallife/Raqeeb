@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#0a0e17">
+<meta name="theme-color" content="#070b12">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,35 +14,24 @@
 <link rel="icon" type="image/png" href="static/icon-192.png">
 <link rel="apple-touch-icon" href="static/apple-touch-icon.png">
 <title>رقيب</title>
-<script src="static/theme-init.js"></script>
-<style>.app{display:block!important;padding-bottom:0!important}.main{min-height:100vh}</style>
-<link rel="stylesheet" href="static/ui.css">
+<link rel="stylesheet" href="static/xterm.css">
+<link rel="stylesheet" href="static/app.css">
 </head>
 <body>
-<div id="login" class="login">
-  <div id="loginBox" class="card"></div>
-</div>
-
-<div id="app" class="app" hidden>
-  <div class="main" style="margin:0">
-    <header class="top">
-      <div class="crumb">رقيب</div>
-      <button id="bioBtn" class="iconbtn ghost" title="تفعيل القفل بالبصمة" hidden></button>
-      <button id="themeBtn" class="iconbtn ghost" title="المظهر"></button>
-      <button id="lockBtn" class="iconbtn ghost" title="قفل" hidden></button>
-      <button id="unpairBtn" class="iconbtn ghost" title="إلغاء الاقتران"></button>
-    </header>
-    <main id="xmain" class="xmain">
-      <section id="view"></section>
-    </main>
+<div id="login" hidden><div id="loginBox" class="card"></div></div>
+<div id="shell" hidden>
+  <div id="pages">
+    <section class="page" id="p-screen"></section>
+    <section class="page" id="p-term"></section>
+    <section class="page" id="p-dash"></section>
+    <section class="page" id="p-ctl"></section>
   </div>
+  <nav id="nav"></nav>
 </div>
-<div id="toast" class="toast" hidden></div>
-<script src="static/raqeeb.js"></script>
-<script src="static/icons.js"></script>
-<script src="static/theme.js"></script>
-<script src="static/device.js"></script>
-<script src="static/device2.js"></script>
-<script src="static/device3.js"></script>
+<div id="sheet"><div class="box"><div style="text-align:center;font-weight:700">رمز PIN</div><div id="pinDots"></div><div class="pad" id="pinPad"></div></div></div>
+<div id="toast"></div>
+<script src="static/xterm.js"></script>
+<script src="static/xterm-addon-fit.js"></script>
+<script src="static/app.js"></script>
 </body>
 </html>
