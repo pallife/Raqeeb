@@ -216,7 +216,9 @@ public sealed partial class AgentService
         _ = Task.Run(async () => { try { await n(text); } catch { } });
     }
 
-    private static readonly string[] SafeOps = { "ping", "status", "processes", "connections", "awake_off" };
+    private static readonly string[] SafeOps = { "ping", "status", "processes", "connections", "awake_off", "telemetry" };
+    private static readonly string[] TermOps = { "term_open", "term_write", "term_read", "term_resize", "term_close", "term_list" };
+    private readonly TerminalManager _term = new();
     private static readonly string[] ActionOps = { "lock", "sleep", "hibernate", "shutdown", "restart", "cancel_shutdown", "kill", "notify", "awake_on" };
     private static readonly string[] NoteOps = { "shutdown", "restart", "shell", "hibernate" };
 
@@ -241,8 +243,9 @@ public sealed partial class AgentService
         {
             if (SafeOps.Contains(op)) return Reply(id, true, data: await ReadOpAsync(op));
 
-            var tier2 = op is "screenshot" or "shell" or "unlock" or "input" or "set_caps" or "quick_send" or "privacy" || FileOps.Contains(op);
+            var tier2 = op is "screenshot" or "shell" or "unlock" or "input" or "set_caps" or "quick_send" or "privacy" || FileOps.Contains(op) || TermOps.Contains(op);
             if (!ActionOps.Contains(op) && !tier2) return Reply(id, false, "أمر غير معروف");
+            if (TermOps.Contains(op) && !_opt.AllowShell) return Reply(id, false, "التيرمينال معطّل في إعدادات التطبيق");
             if (op == "shell" && !_opt.AllowShell) return Reply(id, false, "أوامر PowerShell معطّلة في إعدادات التطبيق");
             if (op == "screenshot" && !_opt.AllowScreenshot) return Reply(id, false, "لقطة الشاشة معطّلة في إعدادات التطبيق");
             if (op == "unlock" && !_opt.AllowUnlock) return Reply(id, false, "فتح القفل عن بُعد معطّل في إعدادات التطبيق");
@@ -281,6 +284,8 @@ public sealed partial class AgentService
         {
             case "awake_off":
                 return SetAwake(false, 0);
+            case "telemetry":
+                return await Task.Run(Telemetry.Snapshot);
             case "ping":
                 return new JsonObject { ["pong"] = true, ["version"] = _host.Version, ["machine"] = Environment.MachineName };
             case "status":

@@ -335,6 +335,21 @@ public sealed partial class AgentService
     {
         switch (op)
         {
+            case "term_open":
+                return new JsonObject { ["id"] = _term.Open(a["shell"]?.GetValue<string>() ?? "powershell", a["cols"]?.GetValue<int>() ?? 100, a["rows"]?.GetValue<int>() ?? 30, a["cwd"]?.GetValue<string>()) };
+            case "term_write":
+                _term.Get(a["id"]!.GetValue<string>()).Write(a["data"]?.GetValue<string>() ?? ""); return new JsonObject { ["ok"] = true };
+            case "term_read":
+            {
+                var (b64, next, reset) = _term.Get(a["id"]!.GetValue<string>()).Read(a["since"]?.GetValue<long>() ?? 0);
+                return new JsonObject { ["data"] = b64, ["next"] = next, ["reset"] = reset, ["exited"] = _term.Get(a["id"]!.GetValue<string>()).Exited };
+            }
+            case "term_resize":
+                _term.Get(a["id"]!.GetValue<string>()).Resize((short)(a["cols"]?.GetValue<int>() ?? 100), (short)(a["rows"]?.GetValue<int>() ?? 30)); return new JsonObject { ["ok"] = true };
+            case "term_close":
+                _term.Close(a["id"]!.GetValue<string>()); return new JsonObject { ["ok"] = true };
+            case "term_list":
+                return new JsonObject { ["items"] = System.Text.Json.JsonSerializer.SerializeToNode(_term.List()) };
             case "input": return await InputAsync(a);
             case "set_caps":
             {
