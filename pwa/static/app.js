@@ -247,6 +247,7 @@
       $('p-ctl').innerHTML = '<div class="top"><h1>تحكم</h1><button id="thBtn">🌓</button></div>' +
         '<div class="card"><h3>☀ إبقاء الجهاز مستيقظاً</h3><div class="row"><span class="mut" id="awInfo">…</span></div><div class="tools"><select id="awH"><option value="1">ساعة</option><option value="2">ساعتان</option><option value="4">4 ساعات</option><option value="8" selected>8 ساعات</option></select><button class="pri" id="awOn">امنع السكون</button><button id="awOff">أوقف</button></div></div>' +
         '<div class="card"><h3>⚡ الطاقة</h3><div class="tools"><button id="bLock">🔒 قفل</button><button id="bSleep">😴 سكون</button><button class="warn" id="bRestart">↻ إعادة تشغيل</button><button class="warn" id="bShut">⏻ إيقاف</button></div></div>' +
+        '<div class="card"><h3>⏰ جدولة الطاقة</h3><div class="tools"><select id="scDo"><option value="hibernate">سبات (يصحى لوحده)</option><option value="sleep">سكون</option><option value="restart">إعادة تشغيل</option><option value="shutdown">إيقاف كامل</option></select><input id="scIn" value="30m" size="6" dir="ltr" title="بعد كم: 30m / 2h / 23:30"><input id="scWake" value="" placeholder="يصحى بعد" size="7" dir="ltr" title="مثال: 5h"><select id="scCl"><option value="none">بدون كلود</option><option value="claude">claude + /rc</option><option value="claude2">claude2 + /rc</option><option value="both">الاثنين + /rc</option></select></div><div class="tools"><button class="pri" id="scGo">جدول</button><button id="scList">المجدول</button><button class="warn" id="scCancel">إلغاء الكل</button></div><pre id="scOut" class="mut" style="white-space:pre-wrap;font-size:12px"></pre></div>' +
         '<div class="card"><h3>🔐 هذا الجوال</h3><div class="tools"><button id="bBio">👆 قفل بالبصمة</button><button id="bPin">نسيان PIN</button><button class="warn" id="bUnpair">إلغاء الاقتران</button></div></div>';
       $('awOn').onclick = async () => { await act('awake_on', { hours: +$('awH').value }, 'الجهاز ما رح ينام'); this.info(); };
       $('awOff').onclick = async () => { await call('awake_off'); toast('أُوقف منع السكون'); this.info(); };
@@ -254,6 +255,11 @@
       $('bSleep').onclick = () => confirm('سكون الجهاز؟ بتنقطع السيطرة حتى يصحى.') && act('sleep', {}, 'سكون');
       $('bRestart').onclick = () => confirm('إعادة تشغيل الجهاز؟') && act('restart', {}, 'يعيد التشغيل');
       $('bShut').onclick = () => confirm('إيقاف الجهاز؟ ما بتقدر تشغّله عن بُعد.') && act('shutdown', {}, 'يُطفأ');
+      const rq = async (args, ok) => { try { const r = await act('shell', { cmd: '& \"$env:LOCALAPPDATA/Raqeeb/scripts/raqeeb-power.ps1\" ' + args, timeout: 30 }); $('scOut').textContent = (r.output || '').trim() || ok || ''; } catch (e) { } };
+      const okT = (v) => /^(\d{1,4}[smhd]?|\d{1,2}:\d{2})$/.test(v);
+      $('scGo').onclick = () => { const i = $('scIn').value.trim(), w = $('scWake').value.trim(); if (!okT(i) || (w && !okT(w))) return toast('صيغة الوقت: 30m أو 2h أو 23:30'); rq('-Do ' + $('scDo').value + ' -In ' + i + (w ? ' -WakeIn ' + w : '') + ' -Claude ' + $('scCl').value, 'تمت الجدولة'); };
+      $('scList').onclick = () => rq('-Do list', 'لا شيء مجدول');
+      $('scCancel').onclick = () => rq('-Do cancel');
       $('bPin').onclick = () => { P.v = ''; toast('نُسي الـPIN'); };
       $('bUnpair').onclick = () => { if (confirm('إلغاء الاقتران ومسح السرّ من هذا الجوال؟')) { LS.del('raqeeb.secret'); LS.del('raqeeb.cred'); location.reload(); } };
       $('thBtn').onclick = () => { const l = document.documentElement.dataset.theme !== 'light'; document.documentElement.dataset.theme = l ? 'light' : 'dark'; LS.set('raqeeb.theme', l ? 'light' : 'dark'); };
