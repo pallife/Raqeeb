@@ -25,3 +25,11 @@ if ($pend -and $pend.claude -and $pend.claude -ne 'none') {
 }
 Remove-Item $pf -EA 0
 Log 'resume done'
+# Keep the PC awake for a while after resume so it does not idle-sleep right after (released when this script exits).
+$awakeMin = 60
+Add-Type -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint f);' -Name P -Namespace RQ
+[void][RQ.P]::SetThreadExecutionState(0x80000001)   # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
+Log "keeping awake for $awakeMin min"
+Start-Sleep -Seconds ($awakeMin * 60)
+[void][RQ.P]::SetThreadExecutionState(0x80000000)
+Log 'awake released'

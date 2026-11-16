@@ -1,23 +1,18 @@
-# Opens PowerShell running claude / claude2, accepts the trust prompt and types /rc (remote control).
-param([ValidateSet('claude','claude2')][string]$Which = 'claude', [string]$Dir = $env:USERPROFILE, [int]$StartupSec = 14)
+# Starts `claude remote-control` (claude / claude2 account) in its own PowerShell window. No keystroke simulation.
+# Requires the folder to be trusted once per account (run `claude` / `claude2` once in $Dir and accept the trust prompt).
+param([ValidateSet('claude','claude2')][string]$Which = 'claude', [string]$Dir = $env:USERPROFILE)
 $ErrorActionPreference = 'Stop'
-$title = "RQ-$Which-" + (Get-Date -Format 'HHmmss')
+$title = "RQ-$Which"
+$name = "$env:COMPUTERNAME-$Which"
 $cmd = "`$Host.UI.RawUI.WindowTitle='$title'; Set-Location -LiteralPath '$Dir'; "
 if ($Which -eq 'claude2') { $cmd += "`$env:CLAUDE_CONFIG_DIR=(Join-Path `$HOME '.claude2'); " }
-$cmd += "claude"
+$cmd += "claude remote-control --name '$name'"
 $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
-$p = Start-Process powershell.exe -ArgumentList '-NoLogo','-NoExit','-EncodedCommand',$enc -PassThru
-Start-Sleep -Seconds $StartupSec
-Add-Type -AssemblyName Microsoft.VisualBasic, System.Windows.Forms
-function Focus { for ($i=0; $i -lt 6; $i++) { try { [Microsoft.VisualBasic.Interaction]::AppActivate($p.Id); return $true } catch { try { [Microsoft.VisualBasic.Interaction]::AppActivate($title); return $true } catch { Start-Sleep 1 } } }; $false }
-if (-not (Focus)) { Write-Output "could not focus window $title"; exit 2 }
-# Trust prompt shows "> No, exit / Yes, I trust this folder" with No preselected: Down then Enter picks Yes.
-# On an already-trusted folder this is harmless (history-down + empty Enter on the prompt).
-[System.Windows.Forms.SendKeys]::SendWait('{DOWN}'); Start-Sleep -Milliseconds 400
-[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
-Start-Sleep -Seconds 5
-[void](Focus)
-foreach ($ch in '/rc'.ToCharArray()) { [System.Windows.Forms.SendKeys]::SendWait([string]$ch); Start-Sleep -Milliseconds 150 }
-Start-Sleep -Milliseconds 600
-[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
-Write-Output "$Which started with /rc (window $title)"
+$p = Start-Process powershell.exe -ArgumentList '-NoLogo','-NoExit','-EncodedCommand',$enc -WindowStyle Minimized -PassThru
+function ClaudeAlive { [bool](Get-CimInstance Win32_Process -Filter "Name='claude.exe' AND ParentProcessId=$($p.Id)" -EA 0) }
+$t0 = Get-Date
+while (-not (ClaudeAlive) -and ((Get-Date) - $t0).TotalSeconds -lt 60) { Start-Sleep -Seconds 1 }
+if (-not (ClaudeAlive)) { Write-Output "claude remote-control did not start ($Which)"; exit 3 }
+Start-Sleep -Seconds 10
+if (-not (ClaudeAlive)) { Write-Output "claude remote-control exited early ($Which) - folder probably not trusted yet"; exit 4 }
+Write-Output "$Which remote-control running (window $title, name $name)"
