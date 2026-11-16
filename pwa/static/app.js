@@ -50,8 +50,10 @@
   // ---------------------------------------------------------------- PIN (في الذاكرة 10 دقائق فقط)
   const P = { v: '', at: 0 };
   const pin = () => (P.v && Date.now() - P.at < 10 * 60 * 1000 ? P.v : '');
+  let pinWait = null;
   function askPin() {
-    return new Promise((res, rej) => {
+    if (pinWait) return pinWait;
+    const pr = new Promise((res, rej) => {
       let v = '';
       const dots = $('pinDots'), draw = () => { dots.replaceChildren(...Array.from({ length: Math.max(6, v.length) }, (_, i) => Object.assign(document.createElement('i'), { className: i < v.length ? 'f' : '' }))); };
       const pad = $('pinPad'); pad.replaceChildren();
@@ -62,6 +64,7 @@
       add('✓', () => { if (v.length < 4) return; P.v = v; P.at = Date.now(); $('sheet').classList.remove('show'); res(v); });
       draw(); $('sheet').classList.add('show');
     });
+    const clr = () => { pinWait = null; }; pr.then(clr, clr); pinWait = pr; return pr;
   }
   async function need() { return pin() || askPin(); }
   async function act(op, args, ok) {
@@ -117,6 +120,7 @@
     send(args) { this.seq = this.seq.then(() => act('input', args)).catch(() => { }); return this.seq; },
     bind(img) {
       img.addEventListener('pointerdown', (e) => { e.preventDefault(); try { img.setPointerCapture(e.pointerId); } catch { } this.down = { x: e.clientX, y: e.clientY, t: Date.now() }; });
+      img.addEventListener('pointercancel', () => { this.down = null; });
       img.addEventListener('pointerup', (e) => {
         const d = this.down; if (!d) return; this.down = null;
         const r = img.getBoundingClientRect(); if (!r.width) return;
