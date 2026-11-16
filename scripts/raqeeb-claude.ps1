@@ -3,9 +3,10 @@ param([ValidateSet('claude','claude2')][string]$Which = 'claude', [string]$Dir =
 $ErrorActionPreference = 'Stop'
 $title = "RQ-$Which-" + (Get-Date -Format 'HHmmss')
 $cmd = "`$Host.UI.RawUI.WindowTitle='$title'; Set-Location -LiteralPath '$Dir'; "
-if ($Which -eq 'claude2') { $cmd += "`$env:CLAUDE_CONFIG_DIR=`"`$HOME\.claude2`"; " }
+if ($Which -eq 'claude2') { $cmd += "`$env:CLAUDE_CONFIG_DIR=(Join-Path `$HOME '.claude2'); " }
 $cmd += "claude"
-$p = Start-Process powershell.exe -ArgumentList '-NoLogo','-NoExit','-Command',$cmd -PassThru
+$enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
+$p = Start-Process powershell.exe -ArgumentList '-NoLogo','-NoExit','-EncodedCommand',$enc -PassThru
 Start-Sleep -Seconds $StartupSec
 Add-Type -AssemblyName Microsoft.VisualBasic, System.Windows.Forms
 function Focus { for ($i=0; $i -lt 6; $i++) { try { [Microsoft.VisualBasic.Interaction]::AppActivate($p.Id); return $true } catch { try { [Microsoft.VisualBasic.Interaction]::AppActivate($title); return $true } catch { Start-Sleep 1 } } }; $false }
