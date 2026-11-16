@@ -11,7 +11,10 @@ Start-Sleep -Seconds $StartupSec
 Add-Type -AssemblyName Microsoft.VisualBasic, System.Windows.Forms
 function Focus { for ($i=0; $i -lt 6; $i++) { try { [Microsoft.VisualBasic.Interaction]::AppActivate($p.Id); return $true } catch { try { [Microsoft.VisualBasic.Interaction]::AppActivate($title); return $true } catch { Start-Sleep 1 } } }; $false }
 if (-not (Focus)) { Write-Output "could not focus window $title"; exit 2 }
-[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')   # accepts "trust this folder" if shown; harmless on an empty prompt
+# Trust prompt shows "> No, exit / Yes, I trust this folder" with No preselected: Down then Enter picks Yes.
+# On an already-trusted folder this is harmless (history-down + empty Enter on the prompt).
+[System.Windows.Forms.SendKeys]::SendWait('{DOWN}'); Start-Sleep -Milliseconds 400
+[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
 Start-Sleep -Seconds 5
 [void](Focus)
 foreach ($ch in '/rc'.ToCharArray()) { [System.Windows.Forms.SendKeys]::SendWait([string]$ch); Start-Sleep -Milliseconds 150 }
