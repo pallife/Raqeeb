@@ -1,9 +1,9 @@
 # One-time installer (self-elevating): copies scripts, registers the elevated on-demand "Raqeeb-Resume" task,
 # enables wake timers, and adds the `rq` shortcut to the PowerShell profile.
 param([string]$User = $env:USERNAME, [string]$Home2 = $env:USERPROFILE)
-$admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrator')
+$admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $admin) {
-    Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$PSCommandPath`"",'-User',$User,'-Home2',"`"$Home2`""
+    Write-Output 'Not running as Administrator. Open PowerShell with "Run as administrator" and run this script again.'
     return
 }
 $base = Join-Path $Home2 'AppData\Local\Raqeeb'; $dst = Join-Path $base 'scripts'

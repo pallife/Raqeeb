@@ -8,7 +8,7 @@ $cmd += "claude"
 $p = Start-Process powershell.exe -ArgumentList '-NoLogo','-NoExit','-Command',$cmd -PassThru
 Start-Sleep -Seconds $StartupSec
 Add-Type -AssemblyName Microsoft.VisualBasic, System.Windows.Forms
-function Focus { for ($i=0; $i -lt 5; $i++) { try { [Microsoft.VisualBasic.Interaction]::AppActivate($title); return $true } catch { Start-Sleep 1 } }; $false }
+function Focus { for ($i=0; $i -lt 6; $i++) { try { [Microsoft.VisualBasic.Interaction]::AppActivate($p.Id); return $true } catch { try { [Microsoft.VisualBasic.Interaction]::AppActivate($title); return $true } catch { Start-Sleep 1 } } }; $false }
 if (-not (Focus)) { Write-Output "could not focus window $title"; exit 2 }
 [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')   # accepts "trust this folder" if shown; harmless on an empty prompt
 Start-Sleep -Seconds 5
